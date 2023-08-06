@@ -1,0 +1,135 @@
+version: '3.7'
+services:
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 33000:8888/tcp # HTTP proxy
+      - 33001:8388/tcp # Shadowsocks
+      - 33002:8388/udp # Shadowsocks
+      - 33003:8000/tcp # Built-in HTTP control server
+      
+      - 33004:3000 # Firefox
+      
+      - 33005:8112 # Deluge Web UI
+      - 6881:6881 # Deluge TCP
+      - 6881:6881/udp # Deluge UDP
+
+      - 33006:9117 # Jackett
+
+      - 33007:8191 # Flaresolver
+
+      - 33008:7878 # Radarr
+      - 33009:8989 # Sonarr
+
+      - 33010:5055 # Overseerr
+    volumes:
+      - /volume1/docker/gluetun:/gluetun
+    environment:
+      - TZ=Europe/London
+      - VPN_SERVICE_PROVIDER=xxx
+      - OPENVPN_USER=xxx
+      - OPENVPN_PASSWORD=xxx
+      - SERVER_COUNTRIES=xxx
+  firefox:
+    image: lscr.io/linuxserver/firefox:latest
+    container_name: firefox
+    environment:
+       - PUID=1026
+       - PGID=101
+       - TZ=Europe/London
+       - CUSTOM_USER=xxx
+       - PASSWORD=xxx
+    volumes:
+       - /volume1/docker/Firefox:/config
+    shm_size: '1gb'
+    restart: unless-stopped 
+    network_mode: 'service:gluetun'
+    depends_on:
+      - gluetun
+
+  deluge:
+    image: lscr.io/linuxserver/deluge:latest
+    container_name: Deluge
+    environment:
+      - PUID=1026
+      - PGID=101
+      - TZ=Europe/London
+    volumes:
+      - /volume1/docker/DelugeVPN:/config
+      - /volume1/MediaDL:/MediaDL
+      - /volumeUSB1/usbshare:/Hdd
+      - /volumeUSB1/usbshare/_downloading:/downloads
+    restart: unless-stopped
+    network_mode: 'service:gluetun'
+    depends_on:
+      - gluetun
+
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: Jackett
+    environment:
+      - PUID=1026
+      - PGID=101
+      - TZ=Europe/London
+    volumes:
+      - /volume1/docker/Jackett:/config
+      - /volumeUSB1/usbshare/_downloading:/downloads
+    restart: unless-stopped 
+    network_mode: 'service:gluetun'
+    depends_on:
+      - gluetun
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: Flaresolverr
+    environment:
+      - TZ=Europe/London
+    restart: unless-stopped 
+    network_mode: 'service:gluetun'
+    depends_on:
+      - gluetun
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: Radarr
+    environment:
+      - PUID=1026
+      - PGID=101
+      - TZ=Europe/London
+    volumes:
+      - /volume1/docker/Radarr:/config
+    restart: unless-stopped
+    network_mode: 'service:gluetun'
+    depends_on:
+      - gluetun
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: Sonarr
+    environment:
+      - PUID=1026
+      - PGID=101
+      - TZ=Europe/London
+    volumes:
+      - /volume1/docker/Sonarr:/config
+    restart: unless-stopped
+    network_mode: 'service:gluetun'
+    depends_on:
+      - gluetun
+
+  overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: Overseerr
+    environment:
+      - PUID=1026
+      - PGID=101
+      - TZ=Europe/London
+    volumes:
+      - /volume1/docker/Overseerr:/config
+    restart: unless-stopped
+    network_mode: 'service:gluetun'
+    depends_on:
+      - gluetun
